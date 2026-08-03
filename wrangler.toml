@@ -1,0 +1,23 @@
+name = "webhawk"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = []
+
+[vars]
+ENVIRONMENT = "development"
+
+# KV namespace for event deduplication
+[[kv_namespaces]]
+binding = "DEDUP_KV"
+id = "placeholder_dedup_kv_id"
+preview_id = "placeholder_dedup_kv_preview_id"
+
+[rate_limiting]
+# Cloudflare Workers built-in rate limiting (Phase 2)
+
+[observability]
+enabled = true
+
+[dev]
+port = 8787
+local_protocol = "http"
