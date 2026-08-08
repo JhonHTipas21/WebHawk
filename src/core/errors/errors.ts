@@ -61,3 +61,8 @@ export class MalformedPayloadError extends WebHawkError {
   readonly statusCode = 400;
   readonly errorCode = 'MALFORMED_PAYLOAD';
 }
+
+export class IpWhitelistError extends WebHawkError {
+  readonly statusCode = 403;
+  readonly errorCode = 'IP_NOT_WHITELISTED';
+}
