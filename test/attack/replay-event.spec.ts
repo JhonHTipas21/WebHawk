@@ -32,7 +32,7 @@ function toArrayBuffer(obj: object): ArrayBuffer {
 }
 
 // ── In-memory KV mock ─────────────────────────────────────────────────────────
-class MockKVNamespace implements Pick<KVNamespace, 'get' | 'put'> {
+class MockKVNamespace {
   private store = new Map<string, string>();
 
   async get(key: string): Promise<string | null> {

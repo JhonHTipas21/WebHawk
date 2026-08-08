@@ -9,7 +9,7 @@
  * This test suite verifies that WompiVerifier rejects all such attempts.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { WompiVerifier } from '../../src/verifiers/wompi.verifier.js';
 import type { Env } from '../../src/core/env.types.js';
 import {
