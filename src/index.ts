@@ -30,6 +30,7 @@ import type { Env } from './core/env.types.js';
 import type { VerificationResult, VerifierRegistry } from './core/verifier.interface.js';
 
 import { EnvValidator } from './core/config/env-validator.js';
+import { metricsMiddleware } from './core/middleware/metrics.middleware.js';
 
 // ── Verifier Registry (Dependency Inversion) ──────────────────────────────────
 // Add new providers here without modifying the pipeline below.
@@ -58,6 +59,9 @@ app.use('*', async (c, next) => {
   EnvValidator.assert(c.env);
   await next();
 });
+
+// Global metrics tracking middleware
+app.use('*', metricsMiddleware());
 
 // Health check (no auth required)
 app.get('/health', (c) => {
