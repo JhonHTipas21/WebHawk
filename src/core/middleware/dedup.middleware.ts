@@ -23,7 +23,7 @@
  */
 
 import type { Context, Next } from 'hono';
-import type { Env } from '../env.types.js';
+import type { Env, Variables } from '../env.types.js';
 
 const DEDUP_TTL_SECONDS = 86400; // 24 hours
 const KV_PREFIX = 'webhawk:dedup:';
@@ -35,10 +35,8 @@ const KV_PREFIX = 'webhawk:dedup:';
  * Depends on `c.get('verificationResult').eventId` set by the HMAC middleware.
  */
 export function dedupMiddleware() {
-  return async (c: Context<{ Bindings: Env }>, next: Next): Promise<Response | void> => {
-    const verificationResult = c.get('verificationResult') as
-      | { eventId?: string; provider?: string }
-      | undefined;
+  return async (c: Context<{ Bindings: Env; Variables: Variables }>, next: Next): Promise<Response | void> => {
+    const verificationResult = c.get('verificationResult');
 
     const eventId = verificationResult?.eventId;
 
