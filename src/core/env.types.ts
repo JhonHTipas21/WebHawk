@@ -6,6 +6,8 @@
  * middlewares and verifiers. Update this as new KV namespaces or secrets are added.
  */
 
+import type { VerificationResult } from './verifier.interface.js';
+
 export interface Env {
   // ── Secrets (bound as plaintext vars in wrangler.toml / Workers dashboard) ──
   /** Wompi Integration Secret for HMAC/checksum verification */
@@ -33,4 +35,11 @@ export interface Env {
   // ── Config vars ──
   /** Deployment environment: "development" | "staging" | "production" */
   ENVIRONMENT: string;
+}
+
+export interface Variables {
+  rawBody: ArrayBuffer;
+  verificationResult: VerificationResult;
+  webhookTimestampMs: number;
+  dedupEventId: string;
 }
