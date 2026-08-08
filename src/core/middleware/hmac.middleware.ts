@@ -20,7 +20,7 @@
  */
 
 import type { Context, Next } from 'hono';
-import type { Env } from '../env.types.js';
+import type { Env, Variables } from '../env.types.js';
 import type { VerificationResult, VerifierRegistry } from '../verifier.interface.js';
 
 /**
@@ -31,7 +31,7 @@ import type { VerificationResult, VerifierRegistry } from '../verifier.interface
  *                   from any specific verifier implementation.
  */
 export function hmacMiddleware(registry: VerifierRegistry<Env>) {
-  return async (c: Context<{ Bindings: Env }>, next: Next): Promise<Response | void> => {
+  return async (c: Context<{ Bindings: Env; Variables: Variables }>, next: Next): Promise<Response | void> => {
     // ── 1. Capture raw body BEFORE any parsing ────────────────────────────────
     const rawBody = await c.req.arrayBuffer();
     c.set('rawBody', rawBody);
