@@ -13,6 +13,7 @@
  * Strips internal Webhawk headers, forwards original provider headers.
  */
 
+import { hmacSha256 } from '../crypto.utils.js';
 import { SsrfGuard } from './ssrf.guard.js';
 
 const ssrfGuard = new SsrfGuard();
@@ -29,12 +30,14 @@ export interface ForwardResult {
  * @param destinationUrl - The user-configured URL to forward to.
  * @param rawBody - The raw request body (same bytes that were HMAC-verified).
  * @param originalHeaders - Headers from the original provider request.
+ * @param egressSigningSecret - Optional secret key used to sign the forwarded request.
  * @returns ForwardResult with HTTP status from the destination.
  */
 export async function forwardWebhook(
   destinationUrl: string,
   rawBody: ArrayBuffer,
   originalHeaders: Headers,
+  egressSigningSecret?: string,
 ): Promise<ForwardResult> {
   // ── SSRF guard ────────────────────────────────────────────────────────────────
   const ssrfCheck = ssrfGuard.validate(destinationUrl);
@@ -70,6 +73,14 @@ export async function forwardWebhook(
   // Add WebHawk metadata headers
   forwardHeaders.set('x-webhawk-forwarded', 'true');
   forwardHeaders.set('x-webhawk-verified-at', new Date().toISOString());
+
+  if (egressSigningSecret) {
+    const timestamp = Math.floor(Date.now() / 1000);
+    const bodyText = new TextDecoder().decode(rawBody);
+    const signedPayload = `${timestamp}.${bodyText}`;
+    const signature = await hmacSha256(egressSigningSecret, signedPayload);
+    forwardHeaders.set('x-webhawk-signature', `t=${timestamp},v1=${signature}`);
+  }
 
   // ── Forward request ───────────────────────────────────────────────────────────
   try {
