@@ -74,9 +74,14 @@ app.get('/health', (c) => {
   });
 });
 
+import { ipWhitelistMiddleware } from './core/middleware/ip-whitelist.middleware.js';
+
 // ── Webhook Proxy Pipeline ────────────────────────────────────────────────────
 app.post(
   '/webhook/:provider',
+
+  // Step 0: IP Whitelist — reject completely unknown/unauthorized IPs early
+  ipWhitelistMiddleware(registry),
 
   // Step 1: Rate limiting — reject DoS early before any crypto
   rateLimitMiddleware(),

@@ -15,7 +15,7 @@ import { IpWhitelistError, UnsupportedProviderError } from '../errors/errors.js'
 
 export function ipWhitelistMiddleware(registry: VerifierRegistry<Env>) {
   return async (c: Context<{ Bindings: Env; Variables: Variables }>, next: Next): Promise<void> => {
-    const providerId = c.req.param('provider');
+    const providerId = c.req.param('provider') ?? '';
     const verifier = registry.get(providerId);
 
     if (!verifier) {

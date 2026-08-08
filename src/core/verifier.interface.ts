@@ -50,6 +50,12 @@ export interface WebhookVerifier<TEnv = Record<string, string>> {
   readonly provider: string;
 
   /**
+   * Optional array of allowed CIDR blocks for this provider.
+   * If defined, the IP whitelist middleware will reject requests from IPs outside these ranges.
+   */
+  readonly allowedIps?: string[];
+
+  /**
    * Verifies the authenticity and integrity of an incoming webhook request.
    *
    * @param rawBody - The raw request body as an ArrayBuffer (captured BEFORE any JSON parsing).
