@@ -22,7 +22,7 @@
  */
 
 import type { Context, Next } from 'hono';
-import type { Env } from '../env.types.js';
+import type { Env, Variables } from '../env.types.js';
 
 /** Replay window: ±5 minutes (300,000 ms) — OWASP recommended */
 export const REPLAY_WINDOW_MS = 5 * 60 * 1000;
@@ -52,10 +52,8 @@ export type TimestampContext = {
  * time and logs a warning — this is safe because deduplication still applies.
  */
 export function timestampMiddleware() {
-  return async (c: Context<{ Bindings: Env }>, next: Next): Promise<Response | void> => {
-    const verificationResult = c.get('verificationResult') as
-      | { timestampMs?: number; provider?: string }
-      | undefined;
+  return async (c: Context<{ Bindings: Env; Variables: Variables }>, next: Next): Promise<Response | void> => {
+    const verificationResult = c.get('verificationResult');
 
     const nowMs = Date.now();
 
@@ -71,7 +69,6 @@ export function timestampMiddleware() {
 
     if (diff > REPLAY_WINDOW_MS + CLOCK_SKEW_BUFFER_MS) {
       const ageSeconds = Math.round((nowMs - webhookTimestampMs) / 1000);
-      const provider = verificationResult.provider ?? 'unknown';
 
       return c.json(
         {
