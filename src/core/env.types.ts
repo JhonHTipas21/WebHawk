@@ -25,6 +25,11 @@ export interface Env {
   /** Previous GitHub secret — rotation overlap */
   GITHUB_WEBHOOK_SECRET_PREV?: string;
 
+  /** Egress signing secret for signing outgoing forwarded requests */
+  EGRESS_SIGNING_SECRET?: string;
+  /** Previous egress signing secret — rotation overlap */
+  EGRESS_SIGNING_SECRET_PREV?: string;
+
   // ── KV Namespaces ──
   /**
    * KV namespace for storing processed event IDs (deduplication).
