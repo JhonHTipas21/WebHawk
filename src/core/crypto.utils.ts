@@ -89,11 +89,11 @@ export function timingSafeCompare(a: string, b: string): boolean {
   if (bufA.byteLength !== bufB.byteLength) {
     // Dummy constant-time comparison — result is always false, but timing
     // is proportional to bufA.length, not immediately returning on mismatch.
-    crypto.subtle.timingSafeEqual(bufA, bufA);
+    (crypto.subtle as any).timingSafeEqual(bufA, bufA);
     return false;
   }
 
-  return crypto.subtle.timingSafeEqual(bufA, bufB);
+  return (crypto.subtle as any).timingSafeEqual(bufA, bufB);
 }
 
 /**
