@@ -103,7 +103,7 @@ app.post(
     const cfRay = c.req.header('cf-ray');
     const startTime = Date.now();
 
-    const logger = new AuditLogger(c.env.ENVIRONMENT ?? 'development');
+    const logger = new AuditLogger(c.env.ENVIRONMENT ?? 'development', c.env.DEDUP_KV);
 
     logger.logVerified({
       result,

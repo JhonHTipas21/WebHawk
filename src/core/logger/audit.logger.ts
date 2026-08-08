@@ -47,8 +47,11 @@ export interface AuditEntry {
 export class AuditLogger {
   private readonly environment: string;
 
-  constructor(environment: string) {
+  private readonly kv?: KVNamespace;
+
+  constructor(environment: string, kv?: KVNamespace) {
     this.environment = environment;
+    this.kv = kv;
   }
 
   /**
@@ -71,6 +74,15 @@ export class AuditLogger {
 
     // Cloudflare Workers structured logging — outputs to Workers Logs/Logpush
     console.log(JSON.stringify(fullEntry));
+
+    // Optional KV storage for high-priority events (e.g., REJECTED/RATE_LIMITED)
+    // Fire-and-forget to avoid blocking response
+    if (this.kv && fullEntry.level !== 'INFO') {
+      const key = `webhawk:audit:warn:${fullEntry.provider}:${fullEntry.requestTimestampMs}`;
+      this.kv.put(key, JSON.stringify(fullEntry), { expirationTtl: 86400 * 7 }).catch((err) => {
+        console.error('Failed to write audit log to KV', err);
+      });
+    }
   }
 
   /**
