@@ -42,6 +42,12 @@ describe('WebHawkError custom hierarchy', () => {
     expect(err.statusCode).toBe(400);
     expect(err.errorCode).toBe('SSRF_BLOCKED');
   });
+
+  it('should serialize ConfigurationError correctly', () => {
+    const err = new ConfigurationError('Configuration error');
+    expect(err.statusCode).toBe(500);
+    expect(err.errorCode).toBe('CONFIGURATION_ERROR');
+  });
 });
 
 describe('errorHandler middleware routing test', () => {

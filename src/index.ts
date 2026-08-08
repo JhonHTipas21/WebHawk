@@ -29,6 +29,8 @@ import { GitHubVerifier } from './verifiers/github.verifier.js';
 import type { Env } from './core/env.types.js';
 import type { VerificationResult, VerifierRegistry } from './core/verifier.interface.js';
 
+import { EnvValidator } from './core/config/env-validator.js';
+
 // ── Verifier Registry (Dependency Inversion) ──────────────────────────────────
 // Add new providers here without modifying the pipeline below.
 function buildRegistry(): VerifierRegistry<Env> {
@@ -41,8 +43,21 @@ function buildRegistry(): VerifierRegistry<Env> {
 
 const registry = buildRegistry();
 
+type Variables = {
+  rawBody: ArrayBuffer;
+  verificationResult: VerificationResult;
+  webhookTimestampMs: number;
+  dedupEventId: string;
+};
+
 // ── Hono App ───────────────────────────────────────────────────────────────────
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<{ Bindings: Env; Variables: Variables }>();
+
+// Global configuration validator middleware
+app.use('*', async (c, next) => {
+  EnvValidator.assert(c.env);
+  await next();
+});
 
 // Health check (no auth required)
 app.get('/health', (c) => {
@@ -143,16 +158,9 @@ app.notFound((c) => {
   return c.json({ error: 'Not found', code: 'NOT_FOUND' }, 404);
 });
 
+import { errorHandler } from './core/middleware/error-handler.js';
+
 // ── Global error handler ───────────────────────────────────────────────────────
-app.onError((err, c) => {
-  console.error(
-    JSON.stringify({
-      level: 'ERROR',
-      event: 'UNHANDLED_ERROR',
-      message: err.message?.substring(0, 100),
-    }),
-  );
-  return c.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, 500);
-});
+app.onError(errorHandler);
 
 export default app;
