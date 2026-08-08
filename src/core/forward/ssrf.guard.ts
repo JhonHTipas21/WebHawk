@@ -75,7 +75,10 @@ export class SsrfGuard {
     }
 
     // ── Hostname checks ────────────────────────────────────────────────────────
-    const hostname = parsed.hostname.toLowerCase();
+    let hostname = parsed.hostname.toLowerCase();
+    if (hostname.startsWith('[') && hostname.endsWith(']')) {
+      hostname = hostname.slice(1, -1);
+    }
 
     // Block localhost variants
     if (hostname === 'localhost' || hostname === '0.0.0.0') {
