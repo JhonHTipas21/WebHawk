@@ -21,7 +21,7 @@
  */
 
 import type { Context, Next } from 'hono';
-import type { Env } from '../env.types.js';
+import type { Env, Variables } from '../env.types.js';
 
 const RATE_WINDOW_MS = 60_000; // 1 minute sliding window
 const MAX_REQUESTS_PER_IP = 60;
@@ -31,10 +31,10 @@ const MAX_BODY_BYTES = 1 * 1024 * 1024; // 1MB
 const KV_RATE_PREFIX = 'webhawk:rate:';
 
 export function rateLimitMiddleware() {
-  return async (c: Context<{ Bindings: Env }>, next: Next): Promise<Response | void> => {
+  return async (c: Context<{ Bindings: Env; Variables: Variables }>, next: Next): Promise<Response | void> => {
     // ── Body size check (fast, no I/O) ────────────────────────────────────────
     const contentLength = c.req.header('content-length');
-    if (contentLength !== null && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
+    if (contentLength && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
       return c.json(
         { error: 'Request body too large', code: 'BODY_TOO_LARGE' },
         413,
