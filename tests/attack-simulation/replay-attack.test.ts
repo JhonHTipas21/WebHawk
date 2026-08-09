@@ -24,6 +24,8 @@ describe('Attack Simulation: Replay Attack (Mismo ID)', () => {
       } as any,
     };
 
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('OK', { status: 200 }));
+
     const makeRequest = () => app.request('/webhook/stripe', {
       method: 'POST',
       headers: {
@@ -34,27 +36,31 @@ describe('Attack Simulation: Replay Attack (Mismo ID)', () => {
       body: rawBody,
     }, env as Env);
 
-    // Primer request debe pasar y devolver lo que envíe el forwarder o el handler (200 OK)
-    // Here our test doesn't have the egress so it might fail at forwarding, but we only care about WebHawk response
-    // Actually, forwarder requires EGRESS secret, let's mock it
     env.EGRESS_SIGNING_SECRET = 'egress_sec';
     env.ENVIRONMENT = 'development'; // avoid failing if no fetch mock
 
     const res1 = await makeRequest();
-    // Verify it succeeded (either 200 or 500 depending on forwarder, but KV should be set)
-    expect(res1.status === 200 || res1.status === 500).toBe(true);
+    // Verify it succeeded
+    expect(res1.status).toBe(200);
 
     // Let's just assert that KV got the dedup item
     const keys = Array.from(kvStore.keys());
     expect(keys.some(k => k.startsWith('webhawk:dedup:stripe_'))).toBe(true);
+    
+    // Clear the spy to isolate the replay request
+    fetchSpy.mockClear();
 
     // Segundo request (Replay Attack)
     const res2 = await makeRequest();
     
-    // Debe responder 200 silencioso sin reprocesar
+    // Debe responder 200 silencioso sin reprocesar (Idempotent response)
     expect(res2.status).toBe(200);
     const json2 = await res2.json() as any;
     expect(json2.message).toBe('Event already processed');
     expect(res2.headers.get('x-webhawk-dedup')).toBe('true');
+    
+    // Explicitly verify the Replay did NOT reach the downstream service
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
   });
 });

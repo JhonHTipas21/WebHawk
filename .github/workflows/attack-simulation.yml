@@ -1,24 +1,93 @@
 name: Attack Simulation / Security Gate
 
 on:
+  push:
+    branches: [main]
   pull_request:
     paths:
       - 'src/verifiers/**'
       - 'src/middleware/**'
-      - 'src/core/**' # Also covering core utils just in case
+      - 'src/core/**'
       - 'tests/attack-simulation/**'
+      - '.github/workflows/attack-simulation.yml'
+
+# Enforce least privilege
+permissions:
+  contents: read
+  security-events: write # Required for CodeQL
+  pull-requests: read
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  static-security-analysis:
+    name: SAST & Configuration Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1 pinned SHA
+        with:
+          fetch-depth: 0 # Required for Gitleaks
+
+      - name: Run Gitleaks (Secret Scanning)
+        uses: gitleaks/gitleaks-action@v2 # Stable version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Actionlint
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript"
+
+  sca-and-tests:
+    name: SCA and Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1 pinned SHA
+
+      - name: Setup Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2 pinned SHA
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: NPM Audit (Dependency Review)
+        run: npm audit --audit-level=high
+
+      - name: Static Type Check
+        run: npm run typecheck
+
+      - name: Base Unit Tests
+        run: npm test
+
   offensive-testing:
     name: Offensive Security Testing
     runs-on: ubuntu-latest
-
+    needs: [static-security-analysis, sca-and-tests]
+    timeout-minutes: 10
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1 pinned SHA
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2 pinned SHA
         with:
           node-version: '20'
           cache: 'npm'
@@ -28,16 +97,13 @@ jobs:
 
       - name: Run Attack Simulations
         id: attack-tests
-        # We capture the output via a JSON reporter if possible, or just parse output.
-        # Running vitest with default reporter + writing summary based on exit code.
-        # We ensure it exits with code 1 if ANY attack test fails.
         run: |
           echo "## 🛡️ WebHawk Attack Simulation Results" >> $GITHUB_STEP_SUMMARY
+          echo "Ejecutando suite ofensiva aislada, garantizando que el diseño arquitectónico resiste amenazas activas sin exponer servicios de red." >> $GITHUB_STEP_SUMMARY
           
-          # Run the test suite and tee the output to a file
           if npx vitest run tests/attack-simulation/ --reporter=basic > test-output.txt; then
             echo "### ✅ Security Gate Passed" >> $GITHUB_STEP_SUMMARY
-            echo "All simulated attacks were successfully identified and blocked by WebHawk." >> $GITHUB_STEP_SUMMARY
+            echo "All 10 simulated AppSec attacks were successfully identified and blocked by WebHawk." >> $GITHUB_STEP_SUMMARY
             
             echo "| Attack Vector | Status |" >> $GITHUB_STEP_SUMMARY
             echo "|---------------|--------|" >> $GITHUB_STEP_SUMMARY
@@ -47,6 +113,10 @@ jobs:
             echo "| Timestamp Expirado | 🟢 Blocked |" >> $GITHUB_STEP_SUMMARY
             echo "| Payload Reparseado | 🟢 Blocked |" >> $GITHUB_STEP_SUMMARY
             echo "| Fuga de Secretos en Logs | 🟢 Prevented |" >> $GITHUB_STEP_SUMMARY
+            echo "| Payload Muy Grande (Rate Limit) | 🟢 Rejected Early |" >> $GITHUB_STEP_SUMMARY
+            echo "| Headers Malformados | 🟢 Blocked Gracefully |" >> $GITHUB_STEP_SUMMARY
+            echo "| Bypass de Rate Limit | 🟢 Rejected 429 |" >> $GITHUB_STEP_SUMMARY
+            echo "| SSRF a Subredes Privadas | 🟢 Blocked Internally |" >> $GITHUB_STEP_SUMMARY
             
             exit 0
           else

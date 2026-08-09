@@ -22,6 +22,8 @@ describe('Attack Simulation: Timestamp Expirado', () => {
       DEDUP_KV: { get: vi.fn().mockResolvedValue(null), put: vi.fn() } as any,
     };
 
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
     const res = await app.request('/webhook/stripe', {
       method: 'POST',
       headers: {
@@ -36,5 +38,9 @@ describe('Attack Simulation: Timestamp Expirado', () => {
     expect(res.status).toBe(401);
     const json = await res.json() as any;
     expect(json.code).toBe('EXPIRED_TIMESTAMP');
+
+    // Explicitly verify the webhook was NOT forwarded despite valid cryptographic signature
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
   });
 });
