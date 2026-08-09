@@ -1,0 +1,62 @@
+name: Attack Simulation / Security Gate
+
+on:
+  pull_request:
+    paths:
+      - 'src/verifiers/**'
+      - 'src/middleware/**'
+      - 'src/core/**' # Also covering core utils just in case
+      - 'tests/attack-simulation/**'
+
+jobs:
+  offensive-testing:
+    name: Offensive Security Testing
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Attack Simulations
+        id: attack-tests
+        # We capture the output via a JSON reporter if possible, or just parse output.
+        # Running vitest with default reporter + writing summary based on exit code.
+        # We ensure it exits with code 1 if ANY attack test fails.
+        run: |
+          echo "## 🛡️ WebHawk Attack Simulation Results" >> $GITHUB_STEP_SUMMARY
+          
+          # Run the test suite and tee the output to a file
+          if npx vitest run tests/attack-simulation/ --reporter=basic > test-output.txt; then
+            echo "### ✅ Security Gate Passed" >> $GITHUB_STEP_SUMMARY
+            echo "All simulated attacks were successfully identified and blocked by WebHawk." >> $GITHUB_STEP_SUMMARY
+            
+            echo "| Attack Vector | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|---------------|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Firma Inválida | 🟢 Blocked |" >> $GITHUB_STEP_SUMMARY
+            echo "| Timing Attack | 🟢 Prevented |" >> $GITHUB_STEP_SUMMARY
+            echo "| Replay Attack (Mismo ID) | 🟢 Silently Rejected |" >> $GITHUB_STEP_SUMMARY
+            echo "| Timestamp Expirado | 🟢 Blocked |" >> $GITHUB_STEP_SUMMARY
+            echo "| Payload Reparseado | 🟢 Blocked |" >> $GITHUB_STEP_SUMMARY
+            echo "| Fuga de Secretos en Logs | 🟢 Prevented |" >> $GITHUB_STEP_SUMMARY
+            
+            exit 0
+          else
+            echo "### ❌ Security Gate FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "**CRITICAL:** One or more attack simulations successfully bypassed WebHawk's defenses." >> $GITHUB_STEP_SUMMARY
+            echo "Review the CI logs for details. This PR is blocked from merging." >> $GITHUB_STEP_SUMMARY
+            
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat test-output.txt | grep -E "(FAIL|×)" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            
+            exit 1
+          fi

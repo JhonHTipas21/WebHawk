@@ -7,6 +7,27 @@ WebHawk is an enterprise-grade proxy and auditor deployed on Cloudflare Workers 
 
 ---
 
+## CI Security Gates (Offensive Testing)
+
+WebHawk utilizes an automated offensive testing pipeline to ensure regression-free security. 
+A dedicated GitHub Actions workflow (`Attack Simulation / Security Gate`) executes a suite of 
+simulated attacks (`tests/attack-simulation/`) against the proxy pipeline on every Pull Request 
+affecting cryptographic verifiers or core middleware.
+
+### Required Repository Configuration
+
+To enforce these security checks, repository administrators **must** manually configure Branch Protection Rules in GitHub:
+
+1. Navigate to your repository **Settings > Branches**.
+2. Click **Add branch protection rule** (or edit the existing rule for `main`).
+3. Enable **Require status checks to pass before merging**.
+4. Search for and select **`Offensive Security Testing`** (the exact name of the job in `attack-simulation.yml`) to make it a required check.
+5. Ensure **Do not allow bypassing the above settings** is enforced.
+
+**CRITICAL INSTRUCTION:** No Pull Request may be merged if the `Offensive Security Testing` check fails. A failure indicates that an attack simulation successfully bypassed WebHawk's defenses. There are no manual exceptions to this rule.
+
+---
+
 ## Architecture
 
 ```
