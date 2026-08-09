@@ -3,8 +3,8 @@ import app from '../../src/index.js';
 import type { Env } from '../../src/core/env.types.js';
 import { computeHmac } from '../../test/helpers/test.helpers.js';
 
-describe('Attack Simulation: Timing Attack en Firma HMAC', () => {
-  it('Debe comparar firmas en tiempo constante (sin variación significativa)', async () => {
+describe('Attack Simulation: Timing Attack on HMAC Signature', () => {
+  it('Should compare signatures in constant time (without significant variance)', async () => {
     const rawBody = JSON.stringify({
       event: { id: 'evt_timing', created_at: Date.now() },
     });

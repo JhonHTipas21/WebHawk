@@ -5,7 +5,7 @@ import { computeHmac } from '../../test/helpers/test.helpers.js';
 import { SsrfGuard } from '../../src/core/forward/ssrf.guard.js';
 
 describe('Attack Simulation: SSRF (Server-Side Request Forgery)', () => {
-  it('Debe bloquear intentos de reenvío hacia loopback, AWS metadata e IPs privadas', async () => {
+  it('Should block forwarding attempts to loopback, AWS metadata, and private IPs', async () => {
     // This attack requires a valid webhook that attempts to exploit the forwarder 
     // using the 'x-webhawk-forward-to' header.
     
@@ -52,7 +52,7 @@ describe('Attack Simulation: SSRF (Server-Side Request Forgery)', () => {
     await runSsrfAttack('https://10.0.0.1/admin');
   });
 
-  it('SsrfGuard estáticamente prohíbe las conexiones inseguras', () => {
+  it('SsrfGuard statically prohibits insecure connections', () => {
     const guard = new SsrfGuard();
     
     // Explicit static tests as required by AppSec rules

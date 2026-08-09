@@ -9,18 +9,40 @@ WebHawk is an enterprise-grade proxy and auditor deployed on Cloudflare Workers 
 
 ## CI Security Gates (Offensive Testing)
 
-WebHawk utilizes an automated offensive testing pipeline to ensure regression-free security. 
-A dedicated GitHub Actions workflow (`Attack Simulation / Security Gate`) executes a suite of 
-simulated attacks (`tests/attack-simulation/`) against the proxy pipeline on every Pull Request 
-affecting cryptographic verifiers or core middleware.
+WebHawk integrates an automated offensive security gate within the CI/CD pipeline to guarantee regression-free cryptographic and network protections. The GitHub Actions workflow (`Attack Simulation / Security Gate`) executes a suite of 10 isolated simulated attacks targeting the proxy pipeline on every pull request that modifies verifiers, middleware, or core components.
+
+### Automated Attack Simulations
+
+The offensive suite (`tests/attack-simulation/`) tests WebHawk against the following vectors:
+
+1. **Invalid Signature Verification:** Ensures requests with invalid or tampered HMAC signatures are rejected (HTTP 401) and verifies no downstream forwarding occurs.
+2. **Timing Attack Protection:** Measures response latency variation under timing-sensitive signature match scenarios to prove constant-time comparison via `crypto.subtle.timingSafeEqual`.
+3. **Replay Attack Mitigation (Within Window):** Submits identical webhook IDs to assert silent deduplication (HTTP 200) and ensure duplicate events are not forwarded.
+4. **Expired Timestamp Rejection:** Validates that requests with expired signatures (past the 5-minute + clock skew window) are rejected even if the signature is cryptographically valid.
+5. **Raw Body Integrity:** Confirms that JSON payloads that are semantically identical but contain different raw bytes (such as whitespaces) fail signature validation, preventing JSON mutation bypasses.
+6. **Secret Leakage Prevention:** Intercepts console logging streams to guarantee that HMAC secrets, private keys, or sensitive payloads are never written to audit trails or error logs.
+7. **Volumetric Payload Mitigation:** Rejects payloads exceeding 1MB (HTTP 413) early in the request lifecycle to protect against memory exhaustion before executing costly cryptographic operations.
+8. **Malformed Header Handling:** Asserts that garbage, missing, or malformed signature headers are rejected gracefully (HTTP 401) without crashing the worker or throwing unhandled exceptions.
+9. **Rate Limit Bypass Prevention:** Floods requests to trigger sliding-window rate limiters, verifying that excess requests are rejected (HTTP 429).
+10. **SSRF Forwarding Restrictions:** Intercepts forwarding destinations to block requests to loopback addresses (`127.0.0.1`), metadata services (`169.254.169.254`), and private subnet ranges.
+
+### Pipeline Security Hardening
+
+The CI workflow is hardened according to enterprise security standards:
+
+- **Static Application Security Testing (SAST):** Integrated GitHub CodeQL to scan the codebase for potential security vulnerabilities.
+- **Secret Scanning:** Runs Gitleaks during the build process to identify hardcoded secrets or credentials.
+- **Workflow Linting:** Uses `actionlint` to lint and enforce GitHub Actions security best practices.
+- **Supply Chain Security:** All third-party GitHub Actions are pinned to immutable commit SHAs instead of mutable tags (e.g., `@v4`) to eliminate dependency hijacking risks.
+- **Least-Privilege Permissions:** The workflow runs with restricted, read-only permissions (`contents: read`, `pull-requests: read`) except where write permissions are explicitly required for CodeQL security events.
 
 ### Required Repository Configuration
 
-To enforce these security checks, repository administrators **must** manually configure Branch Protection Rules in GitHub.
+To enforce these security checks, repository administrators must configure Branch Protection Rules on the `main` branch.
 
-📖 **[Read the Branch Protection Configuration Guide](file:///Users/jhonharveytipassolis/WebHawk/docs/branch-protection.md)**
+[Read the Branch Protection Configuration Guide](file:///Users/jhonharveytipassolis/WebHawk/docs/branch-protection.md)
 
-**CRITICAL INSTRUCTION:** No Pull Request may be merged if the `Offensive Security Testing` check fails. A failure indicates that an attack simulation successfully bypassed WebHawk's defenses. There are no manual exceptions to this rule.
+**CRITICAL:** Merging a pull request is strictly blocked if the `Offensive Security Testing` check fails. A failed status indicates that a simulated attack successfully bypassed WebHawk's security boundaries. No bypasses or administrative overrides are permitted.
 
 ---
 
@@ -133,16 +155,20 @@ EGRESS_SIGNING_SECRET_PREV = "previous_internal_secret"
 
 ## Test Suite and Attack Simulations
 
-The WebHawk testing methodology prioritizes adversarial scenarios over standard functional coverage. The suite simulates the following attack vectors:
+The WebHawk testing methodology prioritizes adversarial scenarios over standard functional coverage. The offensive testing suite (`tests/attack-simulation/`) simulates the following attack vectors:
 
 | Module | Simulated Vector |
 |---|---|
-| `invalid-signature.spec.ts` | Forged HMAC, invalid secrets, tampered payloads |
-| `expired-timestamp.spec.ts` | Replay attacks utilizing historical or future timestamps |
-| `replay-event.spec.ts` | Duplicate event submission and event ID stability |
-| `timing-attack.spec.ts` | Timing side-channel attacks on signature comparison |
-| `ssrf.spec.ts` | Server-Side Request Forgery via private IPs, non-HTTP schemes, and restricted ports |
-| `secret-rotation.spec.ts` | Secret rotation overlap windows and expired secrets |
+| `invalid-signature.test.ts` | Forged HMAC, invalid secrets, tampered payloads |
+| `expired-timestamp.test.ts` | Replay attacks utilizing historical timestamps |
+| `replay-attack.test.ts` | Duplicate event submission and verification of silent 200 responses |
+| `signature-timing-attack.test.ts` | Timing side-channel attacks on signature comparisons |
+| `body-reparsed.test.ts` | JSON payloads that are semantically identical but differ at the byte level |
+| `secret-leakage-logs.test.ts` | Exposure of sensitive secrets or raw request payloads in telemetry logs |
+| `body-too-large.test.ts` | Volumetric body payload threshold exhaustion before cryptographic checks |
+| `malformed-headers.test.ts` | Garbage, missing, or malformed signature headers causing runtime errors |
+| `rate-limit-bypass.test.ts` | Denial of service attempts via request rate flooding |
+| `ssrf-guard.test.ts` | Server-Side Request Forgery via loopback, metadata endpoints, and private subnets |
 
 ---
 

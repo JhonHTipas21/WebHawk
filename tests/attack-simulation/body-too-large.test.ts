@@ -3,8 +3,8 @@ import app from '../../src/index.js';
 import type { Env } from '../../src/core/env.types.js';
 import { computeHmac } from '../../test/helpers/test.helpers.js';
 
-describe('Attack Simulation: Body Demasiado Grande', () => {
-  it('Debe rechazar un payload que exceda 1MB antes de cualquier procesamiento criptográfico', async () => {
+describe('Attack Simulation: Payload Too Large', () => {
+  it('Should reject a payload exceeding 1MB before any cryptographic processing', async () => {
     // We create a body larger than 1MB (MAX_BODY_BYTES)
     const largeData = 'a'.repeat(1 * 1024 * 1024 + 10);
     const rawBody = JSON.stringify({
@@ -34,7 +34,7 @@ describe('Attack Simulation: Body Demasiado Grande', () => {
       body: rawBody,
     }, env as Env);
 
-    // Debe rechazar por Body Too Large ANTES de pasar a HMAC
+    // Should reject with Body Too Large BEFORE passing to HMAC
     expect(res.status).toBe(413);
     const json = await res.json() as any;
     expect(json.code).toBe('BODY_TOO_LARGE');

@@ -3,8 +3,8 @@ import app from '../../src/index.js';
 import type { Env } from '../../src/core/env.types.js';
 import { computeHmac } from '../../test/helpers/test.helpers.js';
 
-describe('Attack Simulation: Timestamp Expirado', () => {
-  it('Debe rechazar (401) un request con firma válida pero timestamp antiguo', async () => {
+describe('Attack Simulation: Expired Timestamp', () => {
+  it('Should reject (401) a request with a valid signature but old timestamp', async () => {
     const rawBody = JSON.stringify({
       event: { id: 'evt_old_123', created_at: Date.now() },
     });
@@ -34,7 +34,7 @@ describe('Attack Simulation: Timestamp Expirado', () => {
       body: rawBody,
     }, env as Env);
 
-    // Debe rechazar por timestamp
+    // Should reject due to timestamp
     expect(res.status).toBe(401);
     const json = await res.json() as any;
     expect(json.code).toBe('EXPIRED_TIMESTAMP');

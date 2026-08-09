@@ -3,7 +3,7 @@ import app from '../../src/index.js';
 import type { Env } from '../../src/core/env.types.js';
 import { computeHmac } from '../../test/helpers/test.helpers.js';
 
-describe('Attack Simulation: Fuga de Secretos en Logs', () => {
+describe('Attack Simulation: Secret Leakage in Logs', () => {
   let logSpy: any;
   let errSpy: any;
 
@@ -17,7 +17,7 @@ describe('Attack Simulation: Fuga de Secretos en Logs', () => {
     errSpy.mockRestore();
   });
 
-  it('No debe filtrar el secreto HMAC ni el payload sensible en los logs de auditoría o errores', async () => {
+  it('Should not leak the HMAC secret or sensitive payload in audit or error logs', async () => {
     const sensitivePayload = 'SENSITIVE_CREDIT_CARD_DATA_9999';
     const rawBody = JSON.stringify({
       event: { id: 'evt_log_test', data: sensitivePayload, created_at: Date.now() },
@@ -28,13 +28,13 @@ describe('Attack Simulation: Fuga de Secretos en Logs', () => {
     const validSignature = await computeHmac(realSecret, `${timestamp}.${rawBody}`);
 
     const env: Partial<Env> = {
-      ENVIRONMENT: 'test', WOMPI_SECRET: 'wompi_sec', GITHUB_WEBHOOK_SECRET: 'github_sec', EGRESS_SIGNING_SECRET: 'egress_sec',
+      ENVIRONMENT: 'test', WOMPI_SECRET: 'wompi_sec', GITHUB_WEBHOOK_SECRET: 'github_sec',
       STRIPE_WEBHOOK_SECRET: realSecret,
       DEDUP_KV: { get: vi.fn().mockResolvedValue(null), put: vi.fn() } as any,
       EGRESS_SIGNING_SECRET: 'egress_sec',
     };
 
-    // Caso 1: Evento Exitoso
+    // Case 1: Successful Event
     await app.request('/webhook/stripe', {
       method: 'POST',
       headers: {
@@ -45,7 +45,7 @@ describe('Attack Simulation: Fuga de Secretos en Logs', () => {
       body: rawBody,
     }, env as Env);
 
-    // Caso 2: Evento Fallido (Firma Inválida)
+    // Case 2: Failed Event (Invalid Signature)
     await app.request('/webhook/stripe', {
       method: 'POST',
       headers: {

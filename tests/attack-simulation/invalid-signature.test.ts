@@ -3,8 +3,8 @@ import app from '../../src/index.js';
 import type { Env } from '../../src/core/env.types.js';
 import { computeHmac } from '../../test/helpers/test.helpers.js';
 
-describe('Attack Simulation: Firma Inválida', () => {
-  it('Debe rechazar (401) un request con firma HMAC incorrecta', async () => {
+describe('Attack Simulation: Invalid Signature', () => {
+  it('Should reject (401) a request with an incorrect HMAC signature', async () => {
     const rawBody = JSON.stringify({
       event: { id: 'evt_123', created_at: Date.now() },
     });

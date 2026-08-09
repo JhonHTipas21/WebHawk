@@ -3,8 +3,8 @@ import app from '../../src/index.js';
 import type { Env } from '../../src/core/env.types.js';
 import { computeHmac } from '../../test/helpers/test.helpers.js';
 
-describe('Attack Simulation: Replay Attack (Mismo ID)', () => {
-  it('Debe procesar el primer evento y responder 200 silencioso al segundo', async () => {
+describe('Attack Simulation: Replay Attack (Same ID)', () => {
+  it('Should process the first event and respond with a silent 200 to the second', async () => {
     const rawBody = JSON.stringify({
       event: { id: 'evt_replay_attack', created_at: Date.now() },
     });
@@ -50,10 +50,10 @@ describe('Attack Simulation: Replay Attack (Mismo ID)', () => {
     // Clear the spy to isolate the replay request
     fetchSpy.mockClear();
 
-    // Segundo request (Replay Attack)
+    // Second request (Replay Attack)
     const res2 = await makeRequest();
     
-    // Debe responder 200 silencioso sin reprocesar (Idempotent response)
+    // Should respond with silent 200 without reprocessing (Idempotent response)
     expect(res2.status).toBe(200);
     const json2 = await res2.json() as any;
     expect(json2.message).toBe('Event already processed');

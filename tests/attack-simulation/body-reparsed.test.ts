@@ -3,8 +3,8 @@ import app from '../../src/index.js';
 import type { Env } from '../../src/core/env.types.js';
 import { computeHmac } from '../../test/helpers/test.helpers.js';
 
-describe('Attack Simulation: Body Reparseado', () => {
-  it('Debe rechazar un payload JSON semánticamente igual pero modificado a nivel de bytes', async () => {
+describe('Attack Simulation: Reparsed Body', () => {
+  it('Should reject a JSON payload that is semantically identical but modified at the byte level', async () => {
     // Original raw body as the provider signed it
     const originalRawBody = '{"event":"payment","id":"123"}';
     
@@ -34,8 +34,8 @@ describe('Attack Simulation: Body Reparseado', () => {
       body: attackerModifiedBody,
     }, env as Env);
 
-    // Si Webhawk parseara el JSON y validara sobre el string re-serializado, esto pasaría.
-    // Como Webhawk usa raw bytes, esto DEBE fallar con 401.
+    // If Webhawk parsed the JSON and validated it over the re-serialized string, this would pass.
+    // Since Webhawk uses raw bytes, this MUST fail with 401.
     expect(res.status).toBe(401);
     const json = await res.json() as any;
     expect(json.code).toBe('INVALID_SIGNATURE');

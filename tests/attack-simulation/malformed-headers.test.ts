@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import app from '../../src/index.js';
 import type { Env } from '../../src/core/env.types.js';
 
-describe('Attack Simulation: Headers Malformados', () => {
-  it('Debe rechazar controladamente sin excepción un header de firma basura', async () => {
+describe('Attack Simulation: Malformed Headers', () => {
+  it('Should reject gracefully without exception on garbage signature headers', async () => {
     const rawBody = JSON.stringify({ event: 'test' });
     
     const env: Partial<Env> = {
@@ -30,7 +30,7 @@ describe('Attack Simulation: Headers Malformados', () => {
     expect(json.code).toBe('MALFORMED_PAYLOAD');
   });
 
-  it('Debe rechazar cuando falta completamente el header', async () => {
+  it('Should reject when signature header is completely missing', async () => {
     const rawBody = JSON.stringify({ event: 'test' });
     
     const env: Partial<Env> = {

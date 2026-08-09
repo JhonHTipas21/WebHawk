@@ -3,7 +3,7 @@ import app from '../../src/index.js';
 import type { Env } from '../../src/core/env.types.js';
 
 describe('Attack Simulation: Rate Limit Bypass', () => {
-  it('Debe rechazar (429) tras exceder el límite de peticiones (Rate Limit)', async () => {
+  it('Should reject (429) after exceeding the request limit (Rate Limit)', async () => {
     // The IP limit is 60 requests.
     const MAX_REQUESTS = 60;
     
